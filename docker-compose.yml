@@ -1,0 +1,83 @@
+# =============================================================================
+# This file defines the three services that make up the FrontIO backend:
+#   - db : PostgreSQL 16 (Odoo's database)
+#   - odoo : Odoo 19 Community Edition (ERP backend)
+#   - redis : Redis 7 (cache + job queue)
+#
+# Usage:
+#   Start all services : docker compose up -d
+#   Stop all services : docker compose down
+#   View logs : docker compose logs -f <service>
+#   Wipe everything : docker compose down -v
+# =============================================================================
+
+services:
+
+  # PostgreSQL for Odoo Database
+  db:
+    image: postgres:16
+    restart: unless-stopped # Auto restart if the container crashes, but dont restart if we manually stop it
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5433:5432" # Format: "host : container"
+    volumes:
+      - pg-data:/var/lib/postgresql/data # Persist database files in a named volume, without this all data is lost on restart
+
+  odoo:
+    image: odoo:19.0
+    restart: unless-stopped
+    # Wait for db service to start first
+    depends_on:
+      - db
+    ports:
+      - "8069:8069"
+    environment:
+      - HOST=db
+      - USER=${POSTGRES_USER}
+      - PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - odoo-data:/var/lib/odoo
+      - ./odoo/custom_modules:/mnt/extra-addons
+    command: --dev=all
+
+  # ---------------------------------------------------------------------------
+  # Redis 7 - Cache + job queue
+  # ---------------------------------------------------------------------------
+  # Redis serves two purposes in FrontIO:
+  #   1. Cache: stores pre-aggregated dashboard KPIs (5-minute TTL)
+  #      so the API gateway doesn't hit Odoo on every request
+  #   2. Job queue: BullMQ uses Redis to queue async tasks like
+  #      sending low-stock alert emails and notification dispatch
+  # ---------------------------------------------------------------------------
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes: # Persist Redis data so cache/queue survives restarts
+      - redis-data:/data
+   
+    # --appendonly yes enables AOF persistence:
+    # Redis writes every operation to a log file on disk
+    # Without this, Redis is purely in-memory
+    # and all data is lost on restart
+    command: redis-server --appendonly yes
+
+
+# =============================================================================
+# Named Volumes
+# =============================================================================
+# Named volumes are managed by Docker and stored on your machine at:
+#   /var/lib/docker/volumes/
+#
+# They persist data across container restarts and rebuilds.
+# Running `docker compose down -v` will DELETE all volumes and their data.
+# =============================================================================
+volumes:
+  pg-data: # Stores PostgreSQL database files
+  odoo-data: # Stores Odoo file attachments and compiled assets
+  redis-data: # Stores Redis AOF persistence log
