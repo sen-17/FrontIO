@@ -18,7 +18,15 @@ interface ApiResponse<T> {
 
 // Fetch all products from the gateway
 export async function fetchProducts(): Promise<Product[]> {
-    const response = await fetch(`${GATEWAY_URL}/api/products`)
+    // Get token from localStorage
+    const token = localStorage.getItem('frontio_token')
+
+    const response = await fetch(`${GATEWAY_URL}/api/products`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
 
     if (!response.ok) {
         throw new Error('Failed to fetch products')
