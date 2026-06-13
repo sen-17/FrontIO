@@ -2,6 +2,7 @@ import { Router } from "express";
 import {Request, Response} from 'express'
 import jwt from 'jsonwebtoken'
 import axios from 'axios'
+import { google } from 'googleapis'
 
 const router = Router()
 
@@ -9,10 +10,25 @@ const ODOO_URL = process.env.ODOO_URL
 const ODOO_DB = process.env.ODOO_DB 
 const JWT_SECRET = process.env.JWT_SECRET 
 const JWT_EXPIRES_IN = '8h'
+const FRONTEND_URL = process.env.FRONTEND_URL
 
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is missing");
 }
+
+// Google OAuth client setup
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+)
+
+// Scopes — what info we request from Google
+const SCOPES = [
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile'
+]
+
 
 // ---------------------------------------------------------------------------
 // POST /api/auth/login
@@ -90,6 +106,69 @@ router.post('/login', async(req: Request, res:Response) => {
             success: false,
             message: 'Authentication failed'
         })
+    }
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/auth/google
+// ---------------------------------------------------------------------------
+// Step 1 of Google OAuth — redirect user to Google's login page
+// ---------------------------------------------------------------------------
+router.get('/google', (req: Request, res: Response) => {
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES
+  })
+
+  res.redirect(authUrl)
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/auth/google/callback
+// ---------------------------------------------------------------------------
+// Step 2 of Google OAuth — Google redirects back here with a code
+// We exchange the code for user info and issue a FrontIO JWT
+// ---------------------------------------------------------------------------
+router.get('/google/callback', async (req: Request, res: Response) => {
+    const code = req.query
+
+    if (!code){
+        res.redirect(`${FRONTEND_URL}/login?error=no_code`)
+        return
+    }
+
+    try {
+        // Step 1 — Exchange code for tokens
+        const {tokens} = await oauth2Client.getToken(code as unknown as string)
+        oauth2Client.setCredentials(tokens)
+
+        // Step 2 — Get user info from Google
+        const oauth2 = google.oauth2({version: 'v2', auth:oauth2Client})
+        const { data } = await oauth2.userinfo.get()
+
+        if (!data.email || !data.name){
+            res.redirect(`${FRONTEND_URL}/login?error=no_user_info`)
+            return
+        }
+
+        // Step 3 — Issue FrontIO JWT
+        // Google users don't have an Odoo uid so we use 0 as a placeholder
+        const token = jwt.sign(
+            {
+                uid : 0,
+                email: data.email,
+                name: data.name
+            },
+            JWT_SECRET,
+            {expiresIn : JWT_EXPIRES_IN}
+        )
+
+        // Step 4 — Redirect to frontend with token in URL
+        // Frontend will extract the token and store it
+        res.redirect(`${FRONTEND_URL}/auth/callback?token=${token}&name=${encodeURIComponent(data.name)}&email=${encodeURIComponent(data.email)}`)
+
+    } catch (error) {
+        res.redirect(`${FRONTEND_URL}/login?error=oauth_failed`)
     }
 })
 

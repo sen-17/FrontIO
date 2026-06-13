@@ -1,4 +1,4 @@
-const GATEWAY_URL = 'http://localhost:3000'
+const GATEWAY_URL = ''
 
 // The shape of a product returned from Odoo via the gateway
 export interface Product {

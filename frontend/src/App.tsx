@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Product'
+import AuthCallback from './pages/AuthCallback'
 
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login/>}/>
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dashboard" element={
             <ProtectedRoute><Dashboard /></ProtectedRoute>
           } />

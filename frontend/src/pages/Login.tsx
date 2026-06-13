@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -10,6 +10,15 @@ export default function Login() {
 
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  // Check for error from Google OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const errorParam = params.get('error')
+    if (errorParam) {
+      setError('Google login failed. Please try again.')
+    }
+  }, [])
 
   async function handleSubmit(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault()
@@ -40,6 +49,11 @@ export default function Login() {
       setLoading(false)
 
     }
+  }
+
+  function handleGoogleLogin() {
+    // Redirect browser to gateway Google OAuth endpoint
+    window.location.href = '/api/auth/google'
   }
 
   return (
@@ -83,6 +97,22 @@ export default function Login() {
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
+
+          <div style={{ textAlign: 'center', color: '#666' }}>or</div>
+
+          <button
+            onClick={handleGoogleLogin}
+            style={{
+              padding: '10px',
+              cursor: 'pointer',
+              backgroundColor: '#4285f4',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px'
+            }}
+          >
+            Login with Google
+          </button> 
         </div>
       </div>
     )
