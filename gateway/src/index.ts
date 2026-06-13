@@ -1,9 +1,11 @@
 import dotenv from 'dotenv'
 import path from 'path'
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+import { verifyToken } from './middleware/authMiddleware'
 
 import express from 'express'
 import cors from 'cors'
+import authRouter from './routes/auth'
 import productsRouter from './routes/product'
 
 const app = express()
@@ -17,7 +19,8 @@ app.use(cors({
 }))
 
 // Routes
-app.use('/api/products', productsRouter)
+app.use('/api/auth', authRouter)
+app.use('/api/products', verifyToken, productsRouter)
 
 // Health Check Route
 app.get('/health', (req, res) => {

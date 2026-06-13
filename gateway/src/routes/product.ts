@@ -1,9 +1,11 @@
-import { Router, Request, Response } from "express";
-import { callOdoo } from "../services/odoo";
+import { Router } from 'express'
+import type { Response } from 'express'
+import type { AuthRequest } from '../middleware/authMiddleware'
+import { callOdoo } from '../services/odoo'
 
 const router = Router()
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
     try {
 
         const products = await callOdoo(
