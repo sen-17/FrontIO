@@ -222,3 +222,6 @@ node_modules/
 *.log
 dist/
 .DS_Store
+.svn
+.vscode
+odoo/custom_modules/l10n_sg_hr_payroll
