@@ -13,7 +13,8 @@ import {
   Settings,
   UserCog,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  X
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -26,6 +27,11 @@ interface NavItem {
 interface NavSection {
   title: string
   items: NavItem[]
+}
+
+interface Props {
+  mobileOpen: boolean
+  onMobileClose: () => void
 }
 
 const navSections: NavSection[] = [
@@ -62,14 +68,26 @@ const navSections: NavSection[] = [
   },
 ]
 
-export default function SideBar() {
+export default function SideBar({ mobileOpen, onMobileClose }: Props) {
     const [collapsed, setCollapsed] = useState(false)
     const navigate = useNavigate()
     const location = useLocation()
     const { user } = useAuth()
 
+    // Navigate and close the mobile drawer (mobile only — desktop ignores onMobileClose effect since it's already visible)
+    function handleNavigate(path: string) {
+      navigate(path)
+      onMobileClose()
+    }
+
     return (
-        <aside className={`${collapsed ? 'w-20'  : 'w-64'} bg-black-950 border-r border-gray-700 flex flex-col h-screen transition-all duration-200 `}>
+      <>
+        {/* Mobile overlay — dark backdrop behind the drawer, only visible when open */}
+        {mobileOpen && (
+          <div onClick={onMobileClose} className='fixed inset-0 bg-black/60 z-40 md:hidden'/>
+        )}
+
+        <aside className={`w-64 ${collapsed ? 'md:w-20' : 'md:w-64'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} fixed md:static inset-y-0 left-0 z-50 bg-black-950 border-r border-gray-700 flex flex-col h-screen transition-all duration-200 `}>
           {/* Logo + Collapse Button */}
           <div className="flex items-center justify-between px-5 py-5">
               {!collapsed && (
@@ -78,8 +96,14 @@ export default function SideBar() {
                 </h1>
               )}
 
-              <button onClick={() => setCollapsed(!collapsed)} className='text-gray-500 hover:text-white transition-colors'>
+              {/* Desktop collapse toggle */}
+              <button onClick={() => setCollapsed(!collapsed)} className='hidden md:block text-gray-500 hover:text-white transition-colors'>
                 {collapsed ? <ChevronsRight size={18}/> : <ChevronsLeft size={18}/>}
+              </button>
+
+              {/* Mobile close button */}
+              <button onClick={onMobileClose} className='md:hidden text-gray-500 hover:text-white transition-colors'>
+                <X size={20}/>
               </button>
           </div>
 
@@ -100,7 +124,7 @@ export default function SideBar() {
                     return (
                       <button 
                         key={item.path}
-                        onClick={() => navigate(item.path)}
+                        onClick={() => handleNavigate(item.path)}
                         className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 text-sm transition-colors ${isActive ? 'bg-primary-subtle text-primary font-medium' : 'text-gray-500 hover:bg-gray-700/30 hover:text-white'}`}
                         >
                         
@@ -129,5 +153,6 @@ export default function SideBar() {
           </div>
 
         </aside>
+      </>
     )
 }
