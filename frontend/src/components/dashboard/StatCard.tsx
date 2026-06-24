@@ -1,5 +1,6 @@
 import { Icon } from "lucide-react";
 import type { ComponentType } from "react";
+import { AreaChart, Area, ResponsiveContainer } from 'recharts'
 
 interface Props {
     icon: ComponentType<{
@@ -11,11 +12,15 @@ interface Props {
     change: string
     trend: 'up' | 'down'
     period: string
+    sparklineData: number[]
 }
 
-export default function StatCard({icon: Icon, label, value, change, trend, period}: Props){
+export default function StatCard({icon: Icon, label, value, change, trend, period, sparklineData}: Props){
+    const chartData = sparklineData.map((val, index) => ({index, val}))
+    const sparklineColor = trend === 'up' ? '#22c55e' : '#ef4444'
+
     return (
-        <div className="bg-black-950 border border-gray-700 rounded-xl p-5 flex-1">
+        <div className="bg-black-950 border border-gray-700 rounded-xl p-5 flex-1 justify-between">
             <div className="flex items-center gap-3 mb-4">
                 <div className="w-15 h-15 rounded-lg bg-primary flex items-center justify-center">
                     <Icon size={30} className="text-white"/>
@@ -26,11 +31,28 @@ export default function StatCard({icon: Icon, label, value, change, trend, perio
                 </div>
             </div>
 
-            <div className="flex items-center gap-1 text-xs">
-                <span className={trend === 'up' ? 'text-success' : 'text-error'}>
-                    {trend === 'up' ? '▲' : '▼'} {change}
-                </span>
-                <span className="text-gray-500">{period}</span>
+            <div className="flex justify-between gap-4">
+                <div className="flex items-center gap-2 text-xs text-nowrap">
+                    <span className={trend === 'up' ? 'text-success' : 'text-error'}>
+                        {trend === 'up' ? '▲' : '▼'} {change}
+                    </span>
+                    <span className="text-gray-500">{period}</span>
+                </div>
+
+                <div className="w-28 h-12 shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                            <Area
+                              type="monotone"
+                              dataKey="val"
+                              stroke={sparklineColor}
+                              fill={sparklineColor}
+                              fillOpacity={0.15}
+                              strokeWidth={2}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
             </div>
         </div>
     )

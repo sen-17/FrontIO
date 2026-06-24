@@ -13,6 +13,7 @@ export default function Dashboard() {
           change="14.2%"
           trend="up"
           period="vs last month"
+          sparklineData={[20, 35, 28, 45, 38, 50, 80]}
         />
       </div>
     </AppShell>
