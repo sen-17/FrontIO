@@ -1,4 +1,3 @@
-import { Icon } from "lucide-react";
 import type { ComponentType } from "react";
 import { AreaChart, Area, ResponsiveContainer } from 'recharts'
 
